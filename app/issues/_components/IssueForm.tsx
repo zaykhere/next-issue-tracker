@@ -7,19 +7,19 @@ import "easymde/dist/easymde.min.css";
 import { useForm, Controller } from "react-hook-form";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { createIssueSchema } from "@/app/validationSchemas";
+import { issueSchema } from "@/app/validationSchemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import ErrorMessage from "@/app/components/ErrorMessage";
 import Spinner from "@/app/components/Spinner";
 import { Issue } from "@prisma/client";
 
-type IssueFormData = z.infer<typeof createIssueSchema>
+type IssueFormData = z.infer<typeof issueSchema>
 
 const IssueForm = ({issue}: {issue?: Issue}) => {
   const router = useRouter();
   const { register, control, handleSubmit, formState: {errors} } = useForm<IssueFormData>({
-    resolver: zodResolver(createIssueSchema)
+    resolver: zodResolver(issueSchema)
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,9 +27,16 @@ const IssueForm = ({issue}: {issue?: Issue}) => {
   const onSubmit = handleSubmit(async (data) => {
     try {
       setLoading(true);
-      await axios.post("/api/issues", data);
+      if(issue) {
+        await axios.patch(`/api/issues/${issue.id}`, data);
+      }
+      else {
+        await axios.post("/api/issues", data);
+      }
+      
       router.push("/issues");
     } catch (error: any) {
+      console.log(error);
       setError("An unexpected error occurred");
     }
     finally {
@@ -65,7 +72,7 @@ const IssueForm = ({issue}: {issue?: Issue}) => {
           )}
         />
         <ErrorMessage> {errors.description?.message} </ErrorMessage> 
-        <Button disabled={loading}>Submit New Issue {loading && <Spinner />} </Button>
+        <Button disabled={loading}> {issue ? 'Update Issue' : 'Submit New Issue '} {loading && <Spinner />} </Button>
       </form>
     </div>
   );

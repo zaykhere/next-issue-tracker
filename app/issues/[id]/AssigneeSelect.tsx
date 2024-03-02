@@ -12,29 +12,25 @@ const AssigneeSelect = ({ issue }: { issue: Issue }) => {
     data: users,
     error,
     isLoading,
-  } = useQuery<User[]>({
-    queryKey: ["users"],
-    queryFn: () => axios.get("/api/users").then((res) => res.data),
-    staleTime: 60 * 1000, // 60 seconds
-    retry: 3,
-  });
+  } = useUsers()
 
   if (error) return null;
+  async function assignIssue(userId: string) {
+      try {
+        await axios.patch("/api/issues/" + issue.id, {
+          assignedToUserId: userId === "unassigned" ? null : userId,
+        });
+      } catch (error) {
+        toast.error("Changed could not be saved")
+      }
+    
+  }
 
   return (
     <>
       <Select.Root
         defaultValue={issue?.assignedToUserId || "unassigned"}
-        onValueChange={async (userId) => {
-          try {
-            await axios.patch("/api/issues/" + issue.id, {
-              assignedToUserId: userId === "unassigned" ? null : userId,
-            });
-          } catch (error) {
-            toast.error("Changed could not be saved")
-          }
-          
-        }}
+        onValueChange={assignIssue}
       >
         <Select.Trigger placeholder="Assign..." />
         <Select.Content>
@@ -53,5 +49,14 @@ const AssigneeSelect = ({ issue }: { issue: Issue }) => {
     </>
   );
 };
+
+const useUsers = () => {
+  return useQuery<User[]>({
+    queryKey: ["users"],
+    queryFn: () => axios.get("/api/users").then((res) => res.data),
+    staleTime: 60 * 1000, // 60 seconds
+    retry: 3,
+  });
+}
 
 export default AssigneeSelect;
